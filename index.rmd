@@ -1,0 +1,82 @@
+---
+title: "STAA-566: Data Vis"
+subtitle: "Assignment 3: Maps"
+author: "Penny Grant"
+date: "`r Sys.Date()`"
+header-includes:
+  - \setmainfont{Noto Sans}
+  - \setmonofont{Noto Sans Mono}
+  - \usepackage{physics}
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load packages
+
+```{r, message = FALSE}
+require(tidyverse)
+require(ggplot2)
+require(sf)
+require(rworldmap)
+require(ggthemes)
+require(viridis)
+require(plotly)
+```
+
+# Import Dataset
+
+This data set was published by the World Happiness Report and downloaded from [kaggle](https://www.kaggle.com/datasets/mathurinache/world-happiness-report). It uses information from the Gallup World Survey and bases scores off several different factors and the degree to which they contribute to the country's happiness.
+
+```{r,warning=FALSE, message = FALSE}
+happiness <- read_csv("2022happinessReport.csv")
+```
+
+Now I convert my data to include Country codes.
+
+```{r}
+world_sf <- st_as_sf(getMap(resolution = "low")) %>% 
+  left_join(happiness, by = c("GEOUNIT"="Country"))
+```
+
+# Plot Data
+
+First I draw the world map on which to include my data. Then I add coloring by the happiness score. I also created a text field to be able to have a tooltip with the happiness score and country's ranking.
+
+```{r, warning=FALSE}
+crs_robin <- "+proj=robin +lat_0=0 +lon_0=0 +x0=0 +y0=0"
+
+h_wm <- ggplot()+
+  geom_sf(data=world_sf,
+          mapping = aes(fill=`Happiness score`,
+                        text=paste("Happiness Ranking:",RANK,"<br>Country:",
+                                  GEOUNIT,"<br>Happiness Score:",`Happiness score`)),
+          col="white", size =.1)
+```
+
+Then I adjust the themes and color schemes
+
+```{r}
+h_wm <- h_wm +
+  theme_classic(base_size = 12,base_family = "sans")+
+  coord_sf(crs=crs_robin) +
+  scale_fill_viridis() +
+  theme(plot.title = element_text(hjust=.5),legend.position = "none")
+```
+
+Finally, I add a title and an interactive element
+```{r}
+h_wm <- h_wm + ggtitle("2022 Happiness Score")
+
+
+# add tooltips
+h_wm <- ggplotly(h_wm,tooltip= "text")
+```
+
+The tooltips show where the country ranks as far as it's happiness score, its name, and the happiness score itself.
+
+`r h_wm`
+
+
